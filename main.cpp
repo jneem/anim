@@ -1,3 +1,4 @@
+#include "animation.h"
 #include "drawingarea.h"
 #include "mainwindow.h"
 #include <QApplication>
@@ -9,7 +10,8 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    DrawingArea w;
+    Animation *anim = new Animation(&a);
+    DrawingArea w(anim);
     w.show();
 
     return a.exec();

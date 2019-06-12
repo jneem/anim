@@ -25,15 +25,23 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        animation.cpp \
         changingpath.cpp \
         drawingarea.cpp \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+        recordingsnippet.cpp \
+        snippet.cpp \
+        timeline.cpp
 
 HEADERS += \
+        animation.h \
         changingpath.h \
         drawingarea.h \
-        mainwindow.h
+        mainwindow.h \
+        recordingsnippet.h \
+        snippet.h \
+        timeline.h
 
 FORMS += \
         mainwindow.ui

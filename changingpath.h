@@ -3,10 +3,9 @@
 
 #include <QElapsedTimer>
 #include <QObject>
+#include <QPainterPath>
 #include <QPointF>
 #include <QVector>
-
-class QPainterPath;
 
 class ChangingPath : public QObject
 {
@@ -16,17 +15,26 @@ public:
 
     void simplify();
     void lineTo(const QPointF &pos);
-    void startAt(const QPointF &pos);
+    void startAt(qint64 time, const QPointF &pos);
+    qint64 startTime() const;
+    qint64 endTime() const;
+    QPainterPath toPainterPath(qint64 time) const;
     QPainterPath toPainterPath() const;
 signals:
 
 public slots:
 
 private:
+    // TODO: add color and thickness
     QVector<QPointF> points;
-    QVector<qreal> times;
+    QVector<qint64> times;
     int last_simplified_idx = 0;
     QElapsedTimer timer;
+};
+
+struct RenderedPath {
+    const ChangingPath *path;
+    QPainterPath rendered;
 };
 
 #endif // CHANGINGPATH_H

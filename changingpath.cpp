@@ -8,31 +8,46 @@ ChangingPath::ChangingPath(QObject *parent) : QObject(parent)
 {
 }
 
-void ChangingPath::startAt(const QPointF &pos)
+void ChangingPath::startAt(qint64 time, const QPointF &pos)
 {
     points.clear();
     points.push_back(pos);
-    times.push_back(0);
+    times.push_back(time);
     timer.start();
 }
 
 void ChangingPath::lineTo(const QPointF &pos)
 {
     points.push_back(pos);
-    times.push_back(timer.elapsed());
+    times.push_back(times[0] + timer.elapsed());
+}
+
+QPainterPath ChangingPath::toPainterPath(qint64 time) const
+{
+    QPainterPath ret;
+    int i = 0;
+    ret.moveTo(points[i]);
+    i++;
+
+    for(; i < points.length() && times[i] <= time; i++) {
+        ret.lineTo(points[i]);
+    }
+    return ret;
 }
 
 QPainterPath ChangingPath::toPainterPath() const
 {
-    QPainterPath ret;
-    auto i = points.begin();
-    ret.moveTo(*i);
-    i++;
+    return toPainterPath(times.last());
+}
 
-    for(; i != points.end(); i++) {
-        ret.lineTo(*i);
-    }
-    return ret;
+qint64 ChangingPath::startTime() const
+{
+    return times[0];
+}
+
+qint64 ChangingPath::endTime() const
+{
+    return times.last();
 }
 
 qreal area(const QPointF &a, const QPointF &b, const QPointF &c) {
@@ -109,4 +124,6 @@ void ChangingPath::simplify()
             }
         }
     }
+
+    // TODO: actually delete the unneeded entries
 }

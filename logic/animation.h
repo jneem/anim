@@ -19,7 +19,7 @@ public:
     qint64 endTime() const;
 
 signals:
-    void snippetAdded(Snippet*);
+    void snippetAdded(Snippet*, qint64 start_time);
     void snippetRemoved(Snippet*);
 
 public slots:

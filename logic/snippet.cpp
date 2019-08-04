@@ -66,6 +66,8 @@ qint64 Snippet::unlerp(qint64 time) const
     auto i = static_cast<int>(iter - lerpValues.begin());
     if (i + 1 >= lerpValues.length()) {
         return lerpTimes.last();
+    } else if (i < 0) {
+        return lerpTimes.first();
     }
     qreal ratio = static_cast<qreal>(time - lerpValues[i]) / static_cast<qreal>(lerpValues[i+1] - lerpValues[i]);
     return static_cast<qint64>((1-ratio) * lerpTimes[i] + ratio * lerpTimes[i+1]);

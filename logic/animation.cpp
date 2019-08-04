@@ -3,6 +3,7 @@
 #include "changingpath.h"
 #include "snippet.h"
 
+#include <QDebug>
 #include <QPainterPath>
 
 Animation::Animation(QObject *parent) : QObject(parent)
@@ -14,20 +15,24 @@ void Animation::addSnippet(Snippet *s, qint64 startTime)
 {
     snippets.push_back(s);
     snippetStartTimes.push_back(startTime);
+
+    emit snippetAdded(s, startTime);
 }
 
 QVector<RenderedPath>
 Animation::updatedPaths(qint64 startTime, qint64 endTime) const
 {
     QVector<RenderedPath> ret;
+
     for (int i = 0; i < snippets.length(); i++) {
         if (snippetStartTimes[i] > endTime || snippetStartTimes[i] + snippets[i]->endTime() < startTime) {
             continue;
         }
 
-        QVector<RenderedPath> v = snippets[i]->changedPaths(startTime + snippetStartTimes[i], endTime + snippetStartTimes[i]);
+        QVector<RenderedPath> v = snippets[i]->changedPaths(startTime - snippetStartTimes[i], endTime - snippetStartTimes[i]);
         ret.append(std::move(v));
     }
+
     return ret;
 }
 

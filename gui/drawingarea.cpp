@@ -87,7 +87,8 @@ void GraphicsView::startRecording()
     recSnippet = new RecordingSnippet(this);
     recStartTime = curTime;
 
-    // TODO: also play back existing things while recording.
+    timer->start(16);
+    elapsedTimer.start();
     emit startedRecording();
 }
 
@@ -99,8 +100,6 @@ void GraphicsView::stopRecording()
         recSnippet = nullptr;
         anim->addSnippet(snippet, recStartTime);
 
-        // This is not really accurate. Plus, we should be updating the length as we record.
-        emit changedLength(recStartTime + snippet->endTime());
         emit stoppedRecording();
     }
 }
@@ -144,11 +143,17 @@ void GraphicsView::tick()
         }
     }
 
-    if (t > anim->endTime()) {
+    // We test recSnippet to tell whether we are recording or just playing: if
+    // we are playing, we should stop at the end. If we are recording, we can
+    // continue past it.
+    if (!recSnippet && t > anim->endTime()) {
         pausePlaying();
-        emit stoppedPlaying();
     } else {
         emit playedTick(curTime);
+
+        if (t > anim->endTime()) {
+            emit changedLength(t);
+        }
     }
 }
 
@@ -171,12 +176,22 @@ void GraphicsView::setTime(qint64 t)
     }
 }
 
+void GraphicsView::mousePressEvent(QMouseEvent *event)
+{
+    qDebug() << "GraphicsView mousePress";
+}
+
+void GraphicsView::mouseReleaseEvent(QMouseEvent *event)
+{
+    qDebug() << "GraphicsView mouseRelease";
+}
+
 DrawingArea::DrawingArea(Animation *anim, QWidget *parent) : QWidget(parent)
 {
     view = new GraphicsView(this);
     view->setAnimation(anim);
 
-    recButton = new QPushButton(QIcon::fromTheme("media-record"), "Record");
+    recButton = new QPushButton(QIcon::fromTheme("actions/media-record-symbolic"), "Record");
     playButton = new QPushButton(QIcon::fromTheme("media-playback-start"), "Play");
     stopButton = new QPushButton(QIcon::fromTheme("media-playback-stop"), "Stop");
     QGroupBox *buttons = new QGroupBox(this);
@@ -199,7 +214,14 @@ DrawingArea::DrawingArea(Animation *anim, QWidget *parent) : QWidget(parent)
 
     connect(view, SIGNAL(playedTick(qint64)), timeline, SLOT(updateTime(qint64)));
     connect(view, SIGNAL(changedLength(qint64)), timeline, SLOT(updateTimeBounds(qint64)));
+    connect(view, SIGNAL(startedPlaying()), timeline, SLOT(startPlaying()));
+    connect(view, SIGNAL(stoppedPlaying()), timeline, SLOT(stopPlaying()));
+    connect(view, SIGNAL(startedRecording()), timeline, SLOT(startRecording()));
+    connect(view, SIGNAL(stoppedRecording()), timeline, SLOT(stopRecording()));
     connect(timeline, SIGNAL(timeWarped(qint64)), view, SLOT(setTime(qint64)));
+
+    connect(anim, SIGNAL(snippetAdded(Snippet*, qint64)), timeline, SLOT(addSnippet(Snippet*, qint64)));
+    connect(anim, SIGNAL(snippetRemoved(Snippet*)), timeline, SLOT(removeSnippet(Snippet*)));
 
     idleButtonState();
 

@@ -27,7 +27,6 @@ signals:
 
 public slots:
     void updateTime(qint64);
-    void updateTimeBounds(qint64);
     void addSnippet(Snippet*, qint64 start_time);
     void removeSnippet(Snippet*);
     void startPlaying();

@@ -37,14 +37,8 @@ Timeline::Timeline(QWidget *parent) : QGraphicsView(parent)
 void Timeline::updateTime(qint64 t)
 {
     qreal x = t * units_per_ms;
-    //qDebug() << "updateTime" << t << x;
+    qDebug() << "Timeline::updateTime" << t << x;
     cursor->setTransform(QTransform::fromTranslate(x, 0));
-}
-
-// TODO: is this obsolete now?
-void Timeline::updateTimeBounds(qint64 t)
-{
-    maxTime = std::max(maxTime, t);
 }
 
 void Timeline::resizeEvent(QResizeEvent *event)

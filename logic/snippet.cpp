@@ -33,10 +33,13 @@ struct find_end {
     }
 };
 
-QVector<RenderedPath> Snippet::changedPaths(qint64 start, qint64 end) const
+QVector<RenderedPath> Snippet::changedPaths(qint64 prev_t, qint64 cur_t) const
 {
-    start = unlerp(start);
-    end = unlerp(end);
+    prev_t = unlerp(prev_t);
+    cur_t = unlerp(cur_t);
+
+    qint64 start = std::min(prev_t, cur_t);
+    qint64 end = std::max(prev_t, cur_t);
 
     QVector<RenderedPath> ret;
 
@@ -45,7 +48,7 @@ QVector<RenderedPath> Snippet::changedPaths(qint64 start, qint64 end) const
 
     for(; i != paths.end(); i++) {
         if ((*i)->startTime() < end) {
-            auto painted = (*i)->toPainterPath(end);
+            auto painted = (*i)->toPainterPath(cur_t);
             ret.push_back(RenderedPath { *i, painted });
         }
     }

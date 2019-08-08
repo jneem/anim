@@ -20,16 +20,12 @@ void Animation::addSnippet(Snippet *s, qint64 startTime)
 }
 
 QVector<RenderedPath>
-Animation::updatedPaths(qint64 startTime, qint64 endTime) const
+Animation::updatedPaths(qint64 prev_t, qint64 cur_t) const
 {
     QVector<RenderedPath> ret;
 
     for (int i = 0; i < snippets.length(); i++) {
-        if (snippetStartTimes[i] > endTime || snippetStartTimes[i] + snippets[i]->endTime() < startTime) {
-            continue;
-        }
-
-        QVector<RenderedPath> v = snippets[i]->changedPaths(startTime - snippetStartTimes[i], endTime - snippetStartTimes[i]);
+        QVector<RenderedPath> v = snippets[i]->changedPaths(prev_t - snippetStartTimes[i], cur_t - snippetStartTimes[i]);
         ret.append(std::move(v));
     }
 

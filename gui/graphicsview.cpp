@@ -34,9 +34,6 @@ GraphicsView::GraphicsView(QWidget *parent) : QGraphicsView(parent)
     curPathItem = nullptr;
     recSnippet = nullptr;
     anim = nullptr;
-
-    timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
 }
 
 void GraphicsView::tabletEvent(QTabletEvent *event)
@@ -82,15 +79,11 @@ void GraphicsView::resizeEvent(QResizeEvent *)
     scale(s, s);
 }
 
-void GraphicsView::startRecording()
+void GraphicsView::startRecording(qint64 time)
 {
     qDebug() << "GraphicsView::startRecording";
     recSnippet = new RecordingSnippet(this);
-    recStartTime = curTime;
-
-    timer->start(16);
-    elapsedTimer.start();
-    emit startedRecording();
+    rec_start_time = time;
 }
 
 void GraphicsView::stopRecording()
@@ -100,42 +93,13 @@ void GraphicsView::stopRecording()
         Snippet *snippet = recSnippet->finishRecording();
         delete recSnippet;
         recSnippet = nullptr;
-        anim->addSnippet(snippet, recStartTime);
-
-        emit stoppedRecording();
+        anim->addSnippet(snippet, rec_start_time);
     }
 }
 
-void GraphicsView::startPlaying()
+void GraphicsView::update(qint64 prev_t, qint64 cur_t)
 {
-    // TODO: we should probably special-case based on the current time: if we're at the end, start playing from the beginning.
-    // Otherwise, resume from the current time.
-    curTime = 0;
-    for (auto i = pathMap.constBegin(); i != pathMap.constEnd(); i++) {
-        // set all the paths to empty
-        i.value()->setPath(QPainterPath());
-    }
-    timer->start(16);
-    elapsedTimer.start();
-
-    emit startedPlaying();
-}
-
-void GraphicsView::pausePlaying()
-{
-    timer->stop();
-
-    emit stoppedPlaying();
-}
-
-void GraphicsView::tick()
-{
-    qint64 prev_t = curTime;
-    qint64 t = prev_t + elapsedTimer.elapsed();
-    elapsedTimer.restart();
-    curTime = t;
-
-    auto pathsToUpdate = anim->updatedPaths(prev_t, t);
+    auto pathsToUpdate = anim->updatedPaths(prev_t, cur_t);
     for (auto p: pathsToUpdate) {
         QGraphicsPathItem *item = pathMap.value(p.path);
         if (item) {
@@ -144,21 +108,9 @@ void GraphicsView::tick()
             qDebug() << "failed to find item for path" << p.path;
         }
     }
-
-    // We test recSnippet to tell whether we are recording or just playing: if
-    // we are playing, we should stop at the end. If we are recording, we can
-    // continue past it.
-    if (!recSnippet && t > anim->endTime()) {
-        pausePlaying();
-    } else {
-        emit playedTick(curTime);
-
-        if (t > anim->endTime()) {
-            emit changedLength(t);
-        }
-    }
 }
 
+/*
 void GraphicsView::setTime(qint64 t)
 {
     curTime = t;
@@ -177,13 +129,4 @@ void GraphicsView::setTime(qint64 t)
         }
     }
 }
-
-void GraphicsView::mousePressEvent(QMouseEvent *event)
-{
-    qDebug() << "GraphicsView mousePress";
-}
-
-void GraphicsView::mouseReleaseEvent(QMouseEvent *event)
-{
-    qDebug() << "GraphicsView mouseRelease";
-}
+*/

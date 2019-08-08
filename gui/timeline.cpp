@@ -11,7 +11,7 @@
 
 Timeline::Timeline(QWidget *parent) : QGraphicsView(parent)
 {
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setRenderHint(QPainter::Antialiasing);
 
@@ -128,11 +128,12 @@ void Timeline::stopRecording()
 // When a snippet is added to the animation, we need to create a corresponding item so that it can be seen in the timeline.
 void Timeline::addSnippet(Snippet *snip, qint64 start_time)
 {
-    // TODO: set vertical translation
     SnippetItem *item = new SnippetItem(snip, units_per_ms);
     snippet_to_item.insert(snip, item);
     snippet_to_start_time.insert(snip, start_time);
     scene->addItem(item);
+
+    qDebug() << "adding snippet, start time" << start_time << ", length" << snip->endTime();
 
     // Recalculate the vertical layout of all the snippet items. (This could probably be done more incrementally.)
     QList<TimelineElement<Snippet*>> elts;

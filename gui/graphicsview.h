@@ -56,25 +56,4 @@ private:
     QHash<QGraphicsPathItem*, const ChangingPath*> revPathMap;
 };
 
-class DrawingArea : public QWidget
-{
-    Q_OBJECT
-public:
-    explicit DrawingArea(Animation *anim, QWidget *parent = nullptr);
-
-signals:
-
-public slots:
-    void playingButtonState();
-    void recordingButtonState();
-    void idleButtonState();
-
-private:
-    GraphicsView *view;
-
-    QPushButton *recButton;
-    QPushButton *playButton;
-    QPushButton *stopButton;
-};
-
 #endif // DRAWINGAREA_H

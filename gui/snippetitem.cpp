@@ -2,6 +2,7 @@
 
 #include "snippet.h"
 
+#include <QCursor>
 #include <QDebug>
 #include <QGraphicsRectItem>
 #include <QPen>

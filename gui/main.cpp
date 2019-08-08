@@ -1,17 +1,17 @@
 #include "animation.h"
-#include "drawingarea.h"
-#include "mainwindow.h"
+#include "graphicsview.h"
+#include "mainui.h"
 #include <QApplication>
 
-// TODO: add a timer slider for replay
 // TODO: add buttons for changing line thickness and color
 // TODO: add an undo stack
+// TODO: add an "instant" mode, recording without animation
 // TODO: add an eraser
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     Animation *anim = new Animation(&a);
-    DrawingArea w(anim);
+    MainUI w(anim);
     w.show();
 
     return a.exec();

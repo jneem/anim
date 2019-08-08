@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>draw-freehand.png</file>
+        <file>media-record.png</file>
+        <file>media-playback-start.png</file>
+        <file>media-playback-stop.png</file>
+        <file>media-playback-pause.png</file>
+        <file>media-seek-backward.png</file>
+        <file>media-seek-forward.png</file>
+        <file>audio-input-microphone.png</file>
+    </qresource>
+</RCC>

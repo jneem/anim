@@ -1,4 +1,4 @@
-#include "drawingarea.h"
+#include "graphicsview.h"
 
 #include "animation.h"
 #include "changingpath.h"
@@ -84,6 +84,7 @@ void GraphicsView::resizeEvent(QResizeEvent *)
 
 void GraphicsView::startRecording()
 {
+    qDebug() << "GraphicsView::startRecording";
     recSnippet = new RecordingSnippet(this);
     recStartTime = curTime;
 
@@ -94,6 +95,7 @@ void GraphicsView::startRecording()
 
 void GraphicsView::stopRecording()
 {
+    qDebug() << "GraphicsView::stopRecording";
     if (recSnippet) {
         Snippet *snippet = recSnippet->finishRecording();
         delete recSnippet;
@@ -184,75 +186,4 @@ void GraphicsView::mousePressEvent(QMouseEvent *event)
 void GraphicsView::mouseReleaseEvent(QMouseEvent *event)
 {
     qDebug() << "GraphicsView mouseRelease";
-}
-
-DrawingArea::DrawingArea(Animation *anim, QWidget *parent) : QWidget(parent)
-{
-    view = new GraphicsView(this);
-    view->setAnimation(anim);
-
-    recButton = new QPushButton(QIcon::fromTheme("actions/media-record-symbolic"), "Record");
-    playButton = new QPushButton(QIcon::fromTheme("media-playback-start"), "Play");
-    stopButton = new QPushButton(QIcon::fromTheme("media-playback-stop"), "Stop");
-    QGroupBox *buttons = new QGroupBox(this);
-    QHBoxLayout *buttonsLayout = new QHBoxLayout;
-    buttonsLayout->addWidget(recButton);
-    buttonsLayout->addWidget(playButton);
-    buttonsLayout->addWidget(stopButton);
-    buttons->setLayout(buttonsLayout);
-
-    Timeline *timeline = new Timeline(this);
-
-    connect(recButton, SIGNAL(clicked()), view, SLOT(startRecording()));
-    connect(stopButton, SIGNAL(clicked()), view, SLOT(stopRecording()));
-    connect(playButton, SIGNAL(clicked()), view, SLOT(startPlaying()));
-
-    connect(view, SIGNAL(startedPlaying()), this, SLOT(playingButtonState()));
-    connect(view, SIGNAL(stoppedPlaying()), this, SLOT(idleButtonState()));
-    connect(view, SIGNAL(startedRecording()), this, SLOT(recordingButtonState()));
-    connect(view, SIGNAL(stoppedRecording()), this, SLOT(idleButtonState()));
-
-    connect(view, SIGNAL(playedTick(qint64)), timeline, SLOT(updateTime(qint64)));
-    connect(view, SIGNAL(changedLength(qint64)), timeline, SLOT(updateTimeBounds(qint64)));
-    connect(view, SIGNAL(startedPlaying()), timeline, SLOT(startPlaying()));
-    connect(view, SIGNAL(stoppedPlaying()), timeline, SLOT(stopPlaying()));
-    connect(view, SIGNAL(startedRecording()), timeline, SLOT(startRecording()));
-    connect(view, SIGNAL(stoppedRecording()), timeline, SLOT(stopRecording()));
-    connect(timeline, SIGNAL(timeWarped(qint64)), view, SLOT(setTime(qint64)));
-
-    connect(anim, SIGNAL(snippetAdded(Snippet*, qint64)), timeline, SLOT(addSnippet(Snippet*, qint64)));
-    connect(anim, SIGNAL(snippetRemoved(Snippet*)), timeline, SLOT(removeSnippet(Snippet*)));
-
-    idleButtonState();
-
-    QVBoxLayout *topLayout = new QVBoxLayout;
-    topLayout->addWidget(view);
-    topLayout->addWidget(buttons);
-    topLayout->addWidget(timeline);
-    setLayout(topLayout);
-}
-
-void DrawingArea::playingButtonState()
-{
-    recButton->setEnabled(false);
-    playButton->setEnabled(false);
-    stopButton->setEnabled(true);
-    disconnect(stopButton, SIGNAL(clicked()));
-    connect(stopButton, SIGNAL(clicked()), view, SLOT(pausePlaying()));
-}
-
-void DrawingArea::recordingButtonState()
-{
-    recButton->setEnabled(false);
-    playButton->setEnabled(false);
-    stopButton->setEnabled(true);
-    disconnect(stopButton, SIGNAL(clicked()));
-    connect(stopButton, SIGNAL(clicked()), view, SLOT(stopRecording()));
-}
-
-void DrawingArea::idleButtonState()
-{
-    recButton->setEnabled(true);
-    playButton->setEnabled(true);
-    stopButton->setEnabled(false);
 }

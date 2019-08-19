@@ -82,7 +82,7 @@ void GraphicsView::resizeEvent(QResizeEvent *)
 void GraphicsView::startRecording(qint64 time)
 {
     qDebug() << "GraphicsView::startRecording";
-    recSnippet = new RecordingSnippet(this);
+    recSnippet = new RecordingSnippet(time, this);
     rec_start_time = time;
 }
 
@@ -93,7 +93,7 @@ void GraphicsView::stopRecording()
         Snippet *snippet = recSnippet->finishRecording();
         delete recSnippet;
         recSnippet = nullptr;
-        anim->addSnippet(snippet, rec_start_time);
+        anim->addSnippet(snippet);
     }
 }
 
@@ -109,24 +109,3 @@ void GraphicsView::update(qint64 prev_t, qint64 cur_t)
         }
     }
 }
-
-/*
-void GraphicsView::setTime(qint64 t)
-{
-    curTime = t;
-    // First, erase all the paths. Then re-render them.
-    for (auto i = pathMap.constBegin(); i != pathMap.constEnd(); i++) {
-        i.value()->setPath(QPainterPath());
-    }
-
-    auto pathsToUpdate = anim->updatedPaths(0, t);
-    for (auto p: pathsToUpdate) {
-        QGraphicsPathItem *item = pathMap.value(p.path);
-        if (item) {
-            item->setPath(p.rendered);
-        } else {
-            qDebug() << "failed to find item for path" << p.path;
-        }
-    }
-}
-*/

@@ -6,6 +6,7 @@
 #include "animation.h"
 #include "graphicsview.h"
 
+class Timeline;
 class QElapsedTimer;
 class QPushButton;
 class QTimer;
@@ -34,6 +35,7 @@ signals:
     void startedRecording();
     void stoppedRecording();
     void timeChanged(qint64 prev, qint64 cur);
+    void markSet(qint64);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -51,13 +53,22 @@ public slots:
     void tick();
     void setTime(qint64 t);
 
+    //void addSnippet(Snippet*, qint64);
+    void removeSnippet(Snippet*);
+    void focusSnippet(Snippet*);
+
+    void setMark();
+    void warpToMark();
+
 private:
     void setRecToRec();
     void setRecToStop();
     void setPlayToPlay();
     void setPlayToStop();
+    void stopScanning();
 
     GraphicsView *view;
+    Timeline *timeline;
 
     QPushButton *recButton;
     QPushButton *playButton;
@@ -66,6 +77,9 @@ private:
     QTimer *timer;
     QElapsedTimer *elapsed_timer;
     qint64 cur_time = 0;
+    qint64 mark_time = 0;
+
+    Snippet *focused_snippet = nullptr;
 };
 
 

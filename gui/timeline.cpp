@@ -9,9 +9,11 @@
 #include <QGraphicsLineItem>
 #include <QResizeEvent>
 
+// TODO: handle the case where there are more than 10 layers
+
 Timeline::Timeline(QWidget *parent) : QGraphicsView(parent)
 {
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setRenderHint(QPainter::Antialiasing);
 
@@ -37,18 +39,16 @@ Timeline::Timeline(QWidget *parent) : QGraphicsView(parent)
 void Timeline::updateTime(qint64 t)
 {
     qreal x = t * units_per_ms;
-    qDebug() << "Timeline::updateTime" << t << x;
     cursor->setTransform(QTransform::fromTranslate(x, 0));
 }
 
 void Timeline::resizeEvent(QResizeEvent *event)
 {
     qDebug() << "resize" << event->size();
-    QRectF sceneRect(-1, 0, 101, 10);
+    QRectF sceneRect(-1, -0.5, 101, 10.5);
     setScene(scene);
     setSceneRect(sceneRect);
     centerOn(sceneRect.center());
-    // TODO: keep the scale updated on resizing.
     setTransform(QTransform());
     scale(width() / sceneRect.width(), height() / sceneRect.height());
     qDebug() << "width" << width() << "height" << height();
@@ -85,6 +85,17 @@ void Timeline::updateTimeFromPos(const QPoint &pos)
     emit timeWarped(t);
 }
 
+void Timeline::setMark(qint64 time)
+{
+    if (!mark) {
+        QPen pen(Qt::blue);
+        pen.setStyle(Qt::DotLine);
+        pen.setWidth(0);
+        mark = scene->addLine(0, 0, 0, 10, pen);
+    }
+    mark->setTransform(QTransform::fromTranslate(time * units_per_ms, 0));
+}
+
 void Timeline::mouseReleaseEvent(QMouseEvent *event)
 {
     event->accept();
@@ -94,7 +105,20 @@ void Timeline::mouseReleaseEvent(QMouseEvent *event)
     }
 
     if (mouse_press_location == event->pos()) {
-        // This counts as a mouse click. Move the cursor to the new time.
+        // This counts as a mouse click. If we're clicking on a snippet, set it as highlighted.
+        // Otherwise, warp the cursor.
+        // NOTE: it might be nicer to implement the snippet focusing by doing mouse handling on
+        // the SnippetItem -- but then we have to re-implement the click detection there...
+        auto item = itemAt(event->pos());
+        while (item) {
+            auto *snip_item = dynamic_cast<SnippetItem*>(item);
+            if (snip_item) {
+                emit highlightedSnippet(snip_item->snippet());
+                return;
+            }
+            item = item->parentItem();
+        }
+
         updateTimeFromPos(event->pos());
     }
 }
@@ -120,34 +144,56 @@ void Timeline::stopRecording()
 }
 
 // When a snippet is added to the animation, we need to create a corresponding item so that it can be seen in the timeline.
-void Timeline::addSnippet(Snippet *snip, qint64 start_time)
+void Timeline::addSnippet(Snippet *snip)
 {
     SnippetItem *item = new SnippetItem(snip, units_per_ms);
     snippet_to_item.insert(snip, item);
-    snippet_to_start_time.insert(snip, start_time);
     scene->addItem(item);
 
-    qDebug() << "adding snippet, start time" << start_time << ", length" << snip->endTime();
+    relayout();
+    emit highlightedSnippet(snip);
+}
 
+void Timeline::relayout()
+{
     // Recalculate the vertical layout of all the snippet items. (This could probably be done more incrementally.)
     QList<TimelineElement<Snippet*>> elts;
-    for (auto it = snippet_to_start_time.begin(); it != snippet_to_start_time.end(); it++) {
-        Snippet *snippet = it.key();
-        qint64 start = it.value();
-        elts.push_back(TimelineElement<Snippet*>{ start, start + snippet->endTime(), snippet});
-    }
-    QMap<Snippet*, int> depth = layoutTimeline(elts);
-
     for (auto it = snippet_to_item.begin(); it != snippet_to_item.end(); it++) {
         Snippet *snippet = it.key();
-        qint64 start_time = snippet_to_start_time.value(snippet);
-        it.value()->setTransform(QTransform::fromTranslate(start_time * units_per_ms, depth.value(snippet)));
+        elts.push_back(TimelineElement<Snippet*>{ snippet->startTime(), snippet->endTime(), snippet });
     }
+
+    QMap<Snippet*, int> depth = layoutTimeline(elts);
+    for (auto it = snippet_to_item.begin(); it != snippet_to_item.end(); it++) {
+        Snippet *snippet = it.key();
+        it.value()->setTransform(QTransform::fromTranslate(0, depth.value(snippet)));
+    }
+}
+
+void Timeline::updateSnippet(Snippet *snip)
+{
+    SnippetItem *item = snippet_to_item.value(snip);
+    item->update();
+    relayout();
 }
 
 void Timeline::removeSnippet(Snippet *snip)
 {
     auto item = snippet_to_item.take(snip);
-    snippet_to_start_time.remove(snip);
     scene->removeItem(item);
+
+    if (item == highlighted) {
+        highlighted = nullptr;
+    }
+}
+
+void Timeline::highlightSnippet(Snippet *snip)
+{
+    if (highlighted) {
+        highlighted->setHighlight(false);
+    }
+    highlighted = snippet_to_item.value(snip);
+    if (highlighted) {
+        highlighted->setHighlight(true);
+    }
 }

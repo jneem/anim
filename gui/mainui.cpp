@@ -8,6 +8,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QPainterPath>
+#include <QShortcut>
 #include <QTabletEvent>
 #include <QTimer>
 #include <QPushButton>
@@ -15,7 +16,10 @@
 
 #include "animation.h"
 #include "graphicsview.h"
+#include "snippet.h"
 #include "timeline.h"
+
+// TODO: make scanning speed variable (e.g., maybe hold shift to make it fast)
 
 MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
 {
@@ -34,33 +38,42 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     buttonsLayout->addStretch();
     buttons->setLayout(buttonsLayout);
 
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    timeline = new Timeline(this);
+    topLayout->addWidget(view);
+    topLayout->addWidget(buttons);
+    topLayout->addWidget(timeline);
+    setLayout(topLayout);
+
     recButton->setShortcutEnabled(true);
     recButton->setShortcut(Qt::Key_R);
     playButton->setShortcutEnabled(true);
     playButton->setShortcut(Qt::Key_P);
 
-    Timeline *timeline = new Timeline(this);
-
     connect(this, SIGNAL(startedPlaying()), timeline, SLOT(startPlaying()));
     connect(this, SIGNAL(stoppedPlaying()), timeline, SLOT(stopPlaying()));
     connect(this, SIGNAL(startedRecording()), timeline, SLOT(startRecording()));
     connect(this, SIGNAL(stoppedRecording()), timeline, SLOT(stopRecording()));
-    connect(timeline, SIGNAL(timeWarped(qint64)), this, SLOT(setTime(qint64)));
+    connect(this, &MainUI::markSet, timeline, &Timeline::setMark);
+    connect(timeline, &Timeline::timeWarped, this, &MainUI::setTime);
+    connect(timeline, &Timeline::highlightedSnippet, this, &MainUI::focusSnippet);
 
-    connect(anim, SIGNAL(snippetAdded(Snippet*, qint64)), timeline, SLOT(addSnippet(Snippet*, qint64)));
-    connect(anim, SIGNAL(snippetRemoved(Snippet*)), timeline, SLOT(removeSnippet(Snippet*)));
+    connect(anim, &Animation::snippetAdded, timeline, &Timeline::addSnippet);
+    connect(anim, &Animation::snippetRemoved, timeline, &Timeline::removeSnippet);
+    connect(anim, &Animation::snippetChanged, timeline, &Timeline::updateSnippet);
+    //connect(anim, &Animation::snippetAdded, this, &MainUI::addSnippet);
+    connect(anim, &Animation::snippetRemoved, this, &MainUI::removeSnippet);
 
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
     connect(this, &MainUI::timeChanged, view, &GraphicsView::update);
     connect(this, &MainUI::timeChanged, timeline, [=](qint64, qint64 cur){ timeline->updateTime(cur); });
 
-    idleButtonState();
+    auto mark_shortcut = new QShortcut(QKeySequence(Qt::Key_M), this);
+    auto warp_shortcut = new QShortcut(QKeySequence(Qt::Key_W), this);
+    connect(mark_shortcut, &QShortcut::activated, this, &MainUI::setMark);
+    connect(warp_shortcut, &QShortcut::activated, this, &MainUI::warpToMark);
 
-    QVBoxLayout *topLayout = new QVBoxLayout;
-    topLayout->addWidget(view);
-    topLayout->addWidget(buttons);
-    topLayout->addWidget(timeline);
-    setLayout(topLayout);
+    idleButtonState();
 }
 
 void MainUI::setRecToStop()
@@ -119,17 +132,50 @@ void MainUI::idleButtonState()
 
 void MainUI::keyPressEvent(QKeyEvent *event)
 {
-    qDebug() << "key press";
+    //qDebug() << "key press";
+    if (event->isAutoRepeat()) {
+        return;
+    }
+    if (state == IDLE) {
+        if (event->key() == Qt::Key_Left) {
+            event->accept();
+            state = SCANNING_BACKWARD;
+            timer->start(16);
+            elapsed_timer->restart();
+        } else if (event->key() == Qt::Key_Right) {
+            event->accept();
+            state = SCANNING_FORWARD;
+            timer->start(16);
+            elapsed_timer->restart();
+        }
+    } else if (state == SCANNING_FORWARD || state == SCANNING_BACKWARD) {
+        stopScanning();
+    }
+}
+
+void MainUI::stopScanning()
+{
+    state = IDLE;
+    timer->stop();
 }
 
 void MainUI::keyReleaseEvent(QKeyEvent *event)
 {
-    qDebug() << "key release";
+    if (event->isAutoRepeat()) {
+        return;
+    }
+    //qDebug() << "key release";
+
+    if (state == SCANNING_FORWARD || state == SCANNING_BACKWARD) {
+        // Even if the released key wasn't the arrow key, stop scanning.
+        event->accept();
+        stopScanning();
+    }
 }
 
 void MainUI::startRecording()
 {
-    qDebug() << "MainUI::startRecording";
+    //qDebug() << "MainUI::startRecording";
 
     state = RECORDING;
     recordingButtonState();
@@ -142,7 +188,7 @@ void MainUI::startRecording()
 
 void MainUI::stopRecording()
 {
-    qDebug() << "MainUI::stopRecording";
+    //qDebug() << "MainUI::stopRecording";
 
     state = IDLE;
     idleButtonState();
@@ -185,7 +231,7 @@ void MainUI::tick()
     elapsed_timer->restart();
     cur_time = std::max(0LL, t);
 
-    qDebug() << "time changed" << prev_t << cur_time;
+    //qDebug() << "time changed" << prev_t << cur_time;
     emit timeChanged(prev_t, cur_time);
 
     // If we are playing, we should stop at the end. If we are recording, we can
@@ -204,4 +250,33 @@ void MainUI::setTime(qint64 t)
 {
     emit timeChanged(cur_time, t);
     cur_time = t;
+}
+
+void MainUI::removeSnippet(Snippet *snip)
+{
+    if (focused_snippet == snip) {
+        focused_snippet = nullptr;
+    }
+}
+
+void MainUI::focusSnippet(Snippet *snip)
+{
+    focused_snippet = snip;
+    timeline->highlightSnippet(snip);
+}
+
+void MainUI::setMark()
+{
+    //qDebug() << "set mark" << cur_time;
+    mark_time = cur_time;
+    emit markSet(mark_time);
+}
+
+void MainUI::warpToMark()
+{
+    if (focused_snippet) {
+        //qDebug() << "warp to mark" << cur_time;
+        view->animation()->warpSnippet(focused_snippet, cur_time, mark_time);
+        setTime(mark_time);
+    }
 }

@@ -3,6 +3,7 @@
 
 #include <QElapsedTimer>
 #include <QGraphicsView>
+#include <QKeyEvent>
 #include <QWidget>
 
 class Animation;
@@ -22,6 +23,11 @@ public:
 
     void tabletEvent(QTabletEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
+
+    // Get rid of the default keyboard handlers.
+    void keyPressEvent(QKeyEvent *ev) override { ev->ignore(); }
+    void keyReleaseEvent(QKeyEvent *ev) override { ev->ignore(); }
+
     void setAnimation(Animation *anim) { this->anim = anim; }
     Animation* animation() { return this->anim; }
 

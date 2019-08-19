@@ -13,7 +13,7 @@ class RecordingSnippet : public QObject
 {
     Q_OBJECT
 public:
-    explicit RecordingSnippet(QObject *parent = nullptr);
+    explicit RecordingSnippet(qint64 start_time, QObject *parent = nullptr);
 
     void startPath(const QPointF &pos);
     void lineTo(const QPointF &pos);
@@ -27,6 +27,7 @@ public slots:
 
 private:
     QVector<ChangingPath*> paths;
+    qint64 start_time;
     QElapsedTimer timer;
     ChangingPath *curPath;
 };

@@ -13,13 +13,13 @@ void ChangingPath::startAt(qint64 time, const QPointF &pos)
     points.clear();
     points.push_back(pos);
     times.push_back(time);
-    timer.start();
 }
 
-void ChangingPath::lineTo(const QPointF &pos)
+void ChangingPath::lineTo(qint64 time, const QPointF &pos)
 {
+    Q_ASSERT(time >= times.last());
     points.push_back(pos);
-    times.push_back(times[0] + timer.elapsed());
+    times.push_back(time);
 }
 
 QPainterPath ChangingPath::toPainterPath(qint64 time) const

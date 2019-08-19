@@ -1,25 +1,8 @@
-#include <QtTest>
-#include <QCoreApplication>
+#include "timelinelayouttests.h"
+
 #include "timelinelayout.h"
 
-// add necessary includes here
-
 using std::make_pair;
-
-class TimelineLayoutTests : public QObject
-{
-    Q_OBJECT
-
-public:
-    TimelineLayoutTests();
-    ~TimelineLayoutTests();
-
-private slots:
-    void initTestCase();
-    void cleanupTestCase();
-    void test_case1();
-
-};
 
 TimelineLayoutTests::TimelineLayoutTests()
 {
@@ -48,7 +31,3 @@ void TimelineLayoutTests::test_case1()
     auto expected = QMap<int, int>({make_pair(0, 0), make_pair(1, 1), make_pair(2, 0), make_pair(3, 2)});
     QCOMPARE(result, expected);
 }
-
-QTEST_MAIN(TimelineLayoutTests)
-
-#include "tst_timelinelayouttests.moc"

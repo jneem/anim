@@ -14,7 +14,7 @@ public:
     explicit ChangingPath(QObject *parent = nullptr);
 
     void simplify();
-    void lineTo(const QPointF &pos);
+    void lineTo(qint64 time, const QPointF &pos);
     void startAt(qint64 time, const QPointF &pos);
     qint64 startTime() const;
     qint64 endTime() const;
@@ -29,7 +29,6 @@ private:
     QVector<QPointF> points;
     QVector<qint64> times;
     int last_simplified_idx = 0;
-    QElapsedTimer timer;
 };
 
 struct RenderedPath {

@@ -60,12 +60,16 @@ public slots:
     void setMark();
     void warpToMark();
 
+    void snapBackToKeyFrame();
+    void snapForwardToKeyFrame();
+
 private:
     void setRecToRec();
     void setRecToStop();
     void setPlayToPlay();
     void setPlayToStop();
     void stopScanning();
+    qint64 timeFactor();
 
     GraphicsView *view;
     Timeline *timeline;

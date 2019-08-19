@@ -7,6 +7,7 @@
 #include <QGraphicsView>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QGuiApplication>
 #include <QPainterPath>
 #include <QShortcut>
 #include <QTabletEvent>
@@ -72,6 +73,11 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     auto warp_shortcut = new QShortcut(QKeySequence(Qt::Key_W), this);
     connect(mark_shortcut, &QShortcut::activated, this, &MainUI::setMark);
     connect(warp_shortcut, &QShortcut::activated, this, &MainUI::warpToMark);
+
+    auto snap_forward_shortcut = new QShortcut(QKeySequence(Qt::Key_Greater), this);
+    auto snap_back_shortcut = new QShortcut(QKeySequence(Qt::Key_Less), this);
+    connect(snap_forward_shortcut, &QShortcut::activated, this, &MainUI::snapForwardToKeyFrame);
+    connect(snap_back_shortcut, &QShortcut::activated, this, &MainUI::snapBackToKeyFrame);
 
     idleButtonState();
 }
@@ -224,9 +230,9 @@ void MainUI::pausePlaying()
 void MainUI::tick()
 {
     qint64 prev_t = cur_time;
-    qint64 t = prev_t + elapsed_timer->elapsed();
+    qint64 t = prev_t + elapsed_timer->elapsed() * timeFactor();
     if (state == SCANNING_BACKWARD) {
-        t = prev_t - elapsed_timer->elapsed();
+        t = prev_t - elapsed_timer->elapsed() * timeFactor();
     }
     elapsed_timer->restart();
     cur_time = std::max(0LL, t);
@@ -278,5 +284,36 @@ void MainUI::warpToMark()
         //qDebug() << "warp to mark" << cur_time;
         view->animation()->warpSnippet(focused_snippet, cur_time, mark_time);
         setTime(mark_time);
+    }
+}
+
+void MainUI::snapBackToKeyFrame()
+{
+    if (focused_snippet) {
+        auto times = focused_snippet->keyTimes();
+        auto iter = std::lower_bound(times.constBegin(), times.constEnd(), cur_time);
+        if (iter != times.constBegin()) {
+            setTime(*(iter - 1));
+        }
+    }
+}
+
+void MainUI::snapForwardToKeyFrame()
+{
+    if (focused_snippet) {
+        auto times = focused_snippet->keyTimes();
+        auto iter = std::upper_bound(times.constBegin(), times.constEnd(), cur_time);
+        if (iter != times.constEnd()) {
+            setTime(*iter);
+        }
+    }
+}
+
+qint64 MainUI::timeFactor() {
+    if ((state == SCANNING_FORWARD || state == SCANNING_BACKWARD)
+            && ((QGuiApplication::keyboardModifiers() & Qt::ShiftModifier) != 0)) {
+        return 4;
+    } else {
+        return 1;
     }
 }

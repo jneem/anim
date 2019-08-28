@@ -4,6 +4,7 @@
 #
 #-------------------------------------------------
 
+QT += multimedia
 TARGET = logic
 TEMPLATE = lib
 CONFIG += staticlib
@@ -21,12 +22,16 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         animation.cpp \
+        audio.cpp \
+        audiosnippet.cpp \
         changingpath.cpp \
         recordingsnippet.cpp \
         snippet.cpp
 
 HEADERS += \
         animation.h \
+        audio.h \
+        audiosnippet.h \
         changingpath.h \
         recordingsnippet.h \
         snippet.h \

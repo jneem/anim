@@ -1,5 +1,10 @@
 #include "mainui.h"
 
+#include <QAudioBuffer>
+#include <QAudioDeviceInfo>
+#include <QAudioInput>
+#include <QAudioOutput>
+#include <QBuffer>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QEvent>
@@ -16,14 +21,16 @@
 #include <QVBoxLayout>
 
 #include "animation.h"
+#include "audio.h"
+#include "audiosnippet.h"
 #include "graphicsview.h"
 #include "snippet.h"
 #include "timeline.h"
 
-// TODO: make scanning speed variable (e.g., maybe hold shift to make it fast)
-
 MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
 {
+    initializeAudio();
+
     view = new GraphicsView(this);
     view->setAnimation(anim);
 
@@ -32,10 +39,12 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
 
     recButton = new QPushButton(QIcon(":/icons/media-record.png"), "");
     playButton = new QPushButton(QIcon(":/icons/media-playback-start.png"), "");
+    audioButton = new QPushButton(QIcon(":/icons/audio-input-microphone.png"), "");
     QGroupBox *buttons = new QGroupBox(this);
     QHBoxLayout *buttonsLayout = new QHBoxLayout;
     buttonsLayout->addWidget(recButton);
     buttonsLayout->addWidget(playButton);
+    buttonsLayout->addWidget(audioButton);
     buttonsLayout->addStretch();
     buttons->setLayout(buttonsLayout);
 
@@ -65,6 +74,8 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     //connect(anim, &Animation::snippetAdded, this, &MainUI::addSnippet);
     connect(anim, &Animation::snippetRemoved, this, &MainUI::removeSnippet);
 
+    connect(audio, &Audio::snippetAdded, timeline, &Timeline::addAudioSnippet);
+
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
     connect(this, &MainUI::timeChanged, view, &GraphicsView::update);
     connect(this, &MainUI::timeChanged, timeline, [=](qint64, qint64 cur){ timeline->updateTime(cur); });
@@ -80,6 +91,27 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     connect(snap_back_shortcut, &QShortcut::activated, this, &MainUI::snapBackToKeyFrame);
 
     idleButtonState();
+}
+
+void MainUI::initializeAudio()
+{
+    QAudioDeviceInfo info = QAudioDeviceInfo::defaultInputDevice();
+    audio_format.setCodec("audio/pcm");
+    audio_format.setByteOrder(QAudioFormat::Endian::LittleEndian);
+    audio_format.setSampleRate(44100);
+    audio_format.setSampleSize(16);
+    audio_format.setChannelCount(1);
+    audio_format.setSampleType(QAudioFormat::SampleType::SignedInt);
+
+    if (!info.isFormatSupported(audio_format)) {
+        qFatal("unsupported audio format");
+    }
+
+    audio_input = new QAudioInput(audio_format, this);
+    audio_output = new QAudioOutput(audio_format, this);
+    audio = new Audio(this);
+    audio_recording_buffer = new QBuffer(this);
+    audio_recording_buffer->open(QIODevice::ReadWrite);
 }
 
 void MainUI::setRecToStop()
@@ -118,22 +150,50 @@ void MainUI::setPlayToPlay()
     connect(playButton, SIGNAL(clicked()), this, SLOT(startPlaying()));
 }
 
+void MainUI::setAudioToRec()
+{
+    audioButton->setEnabled(true);
+    audioButton->setIcon(QIcon(":/icons/audio-input-microphone.png"));
+    audioButton->setToolTip("Start recording audio [a]");
+    disconnect(audioButton, &QPushButton::clicked, this, &MainUI::stopRecordingAudio);
+    connect(audioButton, &QPushButton::clicked, this, &MainUI::startRecordingAudio);
+}
+
+void MainUI::setAudioToStop()
+{
+    audioButton->setEnabled(true);
+    audioButton->setIcon(QIcon(":/icons/media-playback-stop.png"));
+    audioButton->setToolTip("Stop recording audio [a]");
+    disconnect(audioButton, &QPushButton::clicked, this, &MainUI::startRecordingAudio);
+    connect(audioButton, &QPushButton::clicked, this, &MainUI::stopRecordingAudio);
+}
+
 void MainUI::playingButtonState()
 {
     setPlayToStop();
     recButton->setEnabled(false);
+    audioButton->setEnabled(false);
 }
 
 void MainUI::recordingButtonState()
 {
     setRecToStop();
     playButton->setEnabled(false);
+    audioButton->setEnabled(false);
+}
+
+void MainUI::recordingAudioButtonState()
+{
+    playButton->setEnabled(false);
+    recButton->setEnabled(false);
+    setAudioToStop();
 }
 
 void MainUI::idleButtonState()
 {
     setRecToRec();
     setPlayToPlay();
+    setAudioToRec();
 }
 
 void MainUI::keyPressEvent(QKeyEvent *event)
@@ -215,6 +275,8 @@ void MainUI::startPlaying()
     timer->start(16);
     elapsed_timer->start();
 
+    audio_output_device = audio_output->start();
+
     emit startedPlaying();
 }
 
@@ -224,7 +286,38 @@ void MainUI::pausePlaying()
     idleButtonState();
     timer->stop();
 
+    audio_output->stop();
+    audio_output_device = nullptr;
+
     emit stoppedPlaying();
+}
+
+void MainUI::startRecordingAudio()
+{
+    state = RECORDING_AUDIO;
+    recordingAudioButtonState();
+    timer->start(16);
+    elapsed_timer->start();
+
+    audio_recording_buffer->reset();
+    audio_recording_buffer->buffer().clear();
+    audio_input->start(audio_recording_buffer);
+    audio_start_time = cur_time;
+
+    emit startedRecordingAudio();
+}
+
+void MainUI::stopRecordingAudio()
+{
+    state = IDLE;
+    idleButtonState();
+    timer->stop();
+    audio_input->stop();
+
+    QAudioBuffer *buf = new QAudioBuffer(audio_recording_buffer->buffer(), audio_format);
+    audio->addSnippet(new AudioSnippet(buf, audio_start_time, this));
+
+    emit stoppedRecordingAudio();
 }
 
 void MainUI::tick()
@@ -237,16 +330,19 @@ void MainUI::tick()
     elapsed_timer->restart();
     cur_time = std::max(0LL, t);
 
+    if (audio_output_device && (state == SCANNING_FORWARD || state == PLAYING)) {
+        audio->writeAudio(audio_output_device, prev_t, cur_time);
+    }
+
     //qDebug() << "time changed" << prev_t << cur_time;
     emit timeChanged(prev_t, cur_time);
 
     // If we are playing, we should stop at the end. If we are recording, we can
     // continue past it.
-    if (state != RECORDING && (t > endTime() || t < 0)) {
+    if (state != RECORDING && state != RECORDING_AUDIO && (t > endTime() || t < 0)) {
         if (state == PLAYING) {
             pausePlaying();
-        } else {
-            state = IDLE;
+        } else {            state = IDLE;
             timer->stop();
         }
     }
@@ -256,6 +352,12 @@ void MainUI::setTime(qint64 t)
 {
     emit timeChanged(cur_time, t);
     cur_time = t;
+}
+
+qint64 MainUI::endTime() const
+{
+    return std::max(audio->endTime(), view->animation()->endTime());
+
 }
 
 void MainUI::removeSnippet(Snippet *snip)

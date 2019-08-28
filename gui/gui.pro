@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        audiosnippetitem.cpp \
         graphicsview.cpp \
         main.cpp \
         mainui.cpp \
@@ -33,6 +34,7 @@ SOURCES += \
         timeline.cpp
 
 HEADERS += \
+    audiosnippetitem.h \
     graphicsview.h \
     mainui.h \
         mainwindow.h \

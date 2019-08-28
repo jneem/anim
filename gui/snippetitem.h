@@ -14,7 +14,6 @@ public:
     void changeUnitsPerMs(qreal units_per_ms);
     Snippet *snippet() { return snip; }
 
-public slots:
     void setHighlight(bool);
     // Should be called on changes to the snippet.
     void update();

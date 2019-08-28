@@ -1,5 +1,7 @@
 #include "timeline.h"
 
+#include "audiosnippet.h"
+#include "audiosnippetitem.h"
 #include "snippet.h"
 #include "snippetitem.h"
 #include "timelinelayout.h"
@@ -168,6 +170,18 @@ void Timeline::relayout()
         Snippet *snippet = it.key();
         it.value()->setTransform(QTransform::fromTranslate(0, depth.value(snippet)));
     }
+
+    // Now repeat for the audio snippets.
+    QList<TimelineElement<AudioSnippet*>> audio_elts;
+    for (auto it = audio_snippet_to_item.begin(); it != audio_snippet_to_item.end(); it++) {
+        AudioSnippet *snip = it.key();
+        audio_elts.push_back(TimelineElement<AudioSnippet*>{ snip->startTime(), snip->endTime(), snip });
+    }
+    QMap<AudioSnippet*, int> audio_depth = layoutTimeline(audio_elts);
+    for (auto it = audio_snippet_to_item.begin(); it != audio_snippet_to_item.end(); it++) {
+        AudioSnippet *snip = it.key();
+        it.value()->setTransform(QTransform::fromTranslate(0, 9 - audio_depth.value(snip)));
+    }
 }
 
 void Timeline::updateSnippet(Snippet *snip)
@@ -196,4 +210,12 @@ void Timeline::highlightSnippet(Snippet *snip)
     if (highlighted) {
         highlighted->setHighlight(true);
     }
+}
+
+void Timeline::addAudioSnippet(AudioSnippet *snip)
+{
+    auto item = new AudioSnippetItem(snip, units_per_ms);
+    scene->addItem(item);
+    audio_snippet_to_item.insert(snip, item);
+    relayout();
 }

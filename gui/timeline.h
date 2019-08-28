@@ -6,6 +6,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 
+class AudioSnippet;
+class AudioSnippetItem;
 class QGraphicsItem;
 class Snippet;
 class SnippetItem;
@@ -38,6 +40,9 @@ public slots:
     void highlightSnippet(Snippet*);
     void removeSnippet(Snippet*);
     void updateSnippet(Snippet*);
+
+    void addAudioSnippet(AudioSnippet*);
+
     void startPlaying();
     void stopPlaying();
     void startRecording();
@@ -67,6 +72,7 @@ private:
     SnippetItem *highlighted = nullptr;
 
     QHash<Snippet*, SnippetItem*> snippet_to_item;
+    QHash<AudioSnippet*, AudioSnippetItem*> audio_snippet_to_item;
 };
 
 #endif // TIMELINE_H

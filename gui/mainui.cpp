@@ -1,5 +1,6 @@
 #include "mainui.h"
 
+#include <QAction>
 #include <QAudioBuffer>
 #include <QAudioDeviceInfo>
 #include <QAudioInput>
@@ -13,6 +14,7 @@
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QGuiApplication>
+#include <QMenuBar>
 #include <QPainterPath>
 #include <QShortcut>
 #include <QTabletEvent>
@@ -27,7 +29,7 @@
 #include "snippet.h"
 #include "timeline.h"
 
-MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
+MainUI::MainUI(Animation *anim, QWidget *parent) : QMainWindow(parent)
 {
     initializeAudio();
 
@@ -49,11 +51,13 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     buttons->setLayout(buttonsLayout);
 
     QVBoxLayout *topLayout = new QVBoxLayout;
+    QWidget *topWidget = new QWidget;
     timeline = new Timeline(this);
     topLayout->addWidget(view);
     topLayout->addWidget(buttons);
     topLayout->addWidget(timeline);
-    setLayout(topLayout);
+    topWidget->setLayout(topLayout);
+    setCentralWidget(topWidget);
 
     recButton->setShortcutEnabled(true);
     recButton->setShortcut(Qt::Key_R);
@@ -90,6 +94,7 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QWidget(parent)
     connect(snap_forward_shortcut, &QShortcut::activated, this, &MainUI::snapForwardToKeyFrame);
     connect(snap_back_shortcut, &QShortcut::activated, this, &MainUI::snapBackToKeyFrame);
 
+    initializeActions();
     idleButtonState();
 }
 
@@ -112,6 +117,45 @@ void MainUI::initializeAudio()
     audio = new Audio(this);
     audio_recording_buffer = new QBuffer(this);
     audio_recording_buffer->open(QIODevice::ReadWrite);
+}
+
+void
+MainUI::initializeActions()
+{
+    auto openAct = new QAction("&New", this);
+    openAct->setShortcuts(QKeySequence::Open);
+
+    auto saveAct = new QAction("&Save", this);
+    saveAct->setShortcuts(QKeySequence::Save);
+
+    auto saveAsAct = new QAction("&Save as", this);
+    saveAsAct->setShortcuts(QKeySequence::SaveAs);
+
+    auto quitAct = new QAction("&Quit", this);
+    quitAct->setShortcuts(QKeySequence::Quit);
+
+    auto fileMenu = menuBar()->addMenu("&File");
+    fileMenu->addAction(openAct);
+    fileMenu->addAction(saveAct);
+    fileMenu->addAction(saveAsAct);
+    fileMenu->addSeparator();
+    fileMenu->addAction(quitAct);
+
+    auto undoAct = new QAction("&Undo", this);
+    undoAct->setShortcuts(QKeySequence::Undo);
+
+    auto redoAct = new QAction("&Redo", this);
+    redoAct->setShortcuts(QKeySequence::Redo);
+
+    auto editMenu = menuBar()->addMenu("&Edit");
+    editMenu->addAction(undoAct);
+    editMenu->addAction(redoAct);
+}
+
+UIState
+MainUI::uiState() const
+{
+    return state;
 }
 
 void MainUI::setRecToStop()

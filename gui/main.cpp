@@ -1,5 +1,4 @@
 #include "animation.h"
-#include "graphicsview.h"
 #include "mainui.h"
 #include <QApplication>
 
@@ -10,9 +9,9 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    Animation *anim = new Animation(&a);
-    MainUI w(anim);
-    w.show();
+    Animation *anim = new Animation;
+    MainUI *w = new MainUI(anim);
+    w->show();
 
     return a.exec();
 }

@@ -29,7 +29,6 @@ SOURCES += \
         graphicsview.cpp \
         main.cpp \
         mainui.cpp \
-        mainwindow.cpp \
         snippetitem.cpp \
         timeline.cpp
 
@@ -37,12 +36,10 @@ HEADERS += \
     audiosnippetitem.h \
     graphicsview.h \
     mainui.h \
-        mainwindow.h \
         snippetitem.h \
         timeline.h \
 
-FORMS += \
-        mainwindow.ui
+FORMS +=
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

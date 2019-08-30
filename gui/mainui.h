@@ -2,7 +2,7 @@
 #define MAINUI_H
 
 #include <QAudioFormat>
-#include <QWidget>
+#include <QMainWindow>
 
 #include "animation.h"
 #include "graphicsview.h"
@@ -27,13 +27,14 @@ enum UIState {
     IDLE,
 };
 
-class MainUI : public QWidget
+class MainUI : public QMainWindow
 {
     Q_OBJECT
 public:
     explicit MainUI(Animation *anim, QWidget *parent = nullptr);
     qint64 currentTime() const { return cur_time; }
     qint64 endTime() const;
+    UIState uiState() const;
 
 signals:
     void startedPlaying();
@@ -85,6 +86,7 @@ private:
     qint64 timeFactor();
 
     void initializeAudio();
+    void initializeActions();
 
     GraphicsView *view;
     Timeline *timeline;

@@ -15,8 +15,12 @@ RecordingSnippet::RecordingSnippet(qint64 start_time, QObject *parent) : QObject
 
 void RecordingSnippet::startPath(const QPointF &pos)
 {
-    curPath = new ChangingPath(this);
-    curPath->startAt(timer.elapsed(), pos);
+    if (!curPath) {
+        curPath = new ChangingPath(this);
+        curPath->startAt(timer.elapsed(), pos);
+    } else {
+        qDebug() << "not starting path, because one already exists";
+    }
 }
 
 void RecordingSnippet::lineTo(const QPointF &pos)

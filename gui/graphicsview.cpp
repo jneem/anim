@@ -44,12 +44,16 @@ void GraphicsView::tabletEvent(QTabletEvent *event)
     if (recSnippet) {
         QPointF pos = mapToScene(event->pos());
         if (event->type() == QEvent::TabletPress) {
-            recSnippet->startPath(pos);
-            curPathItem = new QGraphicsPathItem();
-            scene()->addItem(curPathItem);
+            // It seems to be possible to get two presses with no release in between.
+            // In this case, we continue the previous path instead of starting a new one.
+            if (!recSnippet->currentPath()) {
+                recSnippet->startPath(pos);
+                curPathItem = new QGraphicsPathItem();
+                scene()->addItem(curPathItem);
 
-            pathMap.insert(recSnippet->currentPath(), curPathItem);
-            revPathMap.insert(curPathItem, recSnippet->currentPath());
+                pathMap.insert(recSnippet->currentPath(), curPathItem);
+                revPathMap.insert(curPathItem, recSnippet->currentPath());
+            }
         } else if (event->type() == QEvent::TabletMove) {
             recSnippet->lineTo(pos);
             if (curPathItem) {

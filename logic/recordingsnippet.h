@@ -29,7 +29,7 @@ private:
     QVector<ChangingPath*> paths;
     qint64 start_time;
     QElapsedTimer timer;
-    ChangingPath *curPath;
+    ChangingPath *curPath = nullptr;
 };
 
 #endif // RECORDINGSNIPPET_H

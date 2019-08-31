@@ -38,7 +38,7 @@ Animation::updatedPaths(qint64 prev_t, qint64 cur_t)
     for (Snippet *s : snippets) {
         QVector<RenderedPath> v;
         if (dirty_snippets.contains(s)) {
-            v = s->changedPaths(s->startTime(), s->endTime());
+            v = s->changedPaths(s->startTime(), cur_t);
         } else {
             v = s->changedPaths(prev_t, cur_t);
 

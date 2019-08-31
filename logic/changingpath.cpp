@@ -1,5 +1,6 @@
 #include "changingpath.h"
 
+#include <QDebug>
 #include <QMultiMap>
 #include <QPainterPath>
 #include <QPointF>

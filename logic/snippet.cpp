@@ -52,8 +52,20 @@ QVector<RenderedPath> Snippet::changedPaths(qint64 prev_t, qint64 cur_t) const
 
     qint64 start = std::min(prev_t, cur_t);
     qint64 end = std::max(prev_t, cur_t);
+    qint64 my_end_time = endTime();
+
 
     QVector<RenderedPath> ret;
+    if (cur_t > my_end_time) {
+        // Mark all paths as empty.
+        for (auto p: paths) {
+            ret.push_back(RenderedPath { p, QPainterPath() });
+        }
+        return ret;
+    } else if (prev_t > my_end_time) {
+        // At the previous time, nothing was visible. So we need to refresh everything.
+        start = startTime();
+    }
 
     // We are only interested in paths that finish after time `start`.
     auto i = std::upper_bound(paths.begin(), paths.end(), start, find_end());
@@ -68,13 +80,16 @@ QVector<RenderedPath> Snippet::changedPaths(qint64 prev_t, qint64 cur_t) const
     return ret;
 }
 
+// TODO: document this, and explain why the return value is a pair.
 std::pair<qint64, qint64>
 Snippet::lerp_interval(qint64 time, const QVector<qint64> &from, const QVector<qint64> &to) const
 {
     if (time >= from.last()) {
-        return std::make_pair(to.last(), to.last());
+        qint64 ret = to.last() + (time - from.last());
+        return std::make_pair(ret, ret);
     } else if (time <= from.first()) {
-        return std::make_pair(to.first(), to.first());
+        qint64 ret = to.first() + (time - from.first());
+        return std::make_pair(ret, ret);
     }
 
     auto iter = std::lower_bound(from.begin(), from.end(), time);

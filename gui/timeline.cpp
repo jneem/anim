@@ -219,3 +219,9 @@ void Timeline::addAudioSnippet(AudioSnippet *snip)
     audio_snippet_to_item.insert(snip, item);
     relayout();
 }
+
+void Timeline::removeAudioSnippet(AudioSnippet *snip)
+{
+    auto item = audio_snippet_to_item.take(snip);
+    scene->removeItem(item);
+}

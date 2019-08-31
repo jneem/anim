@@ -19,6 +19,7 @@ public:
     explicit Animation(QObject *parent = nullptr);
     QVector<RenderedPath> updatedPaths(qint64 startTime, qint64 endTime);
     void addSnippet(Snippet*);
+    void removeSnippet(Snippet*);
     qint64 endTime() const;
     void warpSnippet(Snippet *s, qint64 old_time, qint64 new_time);
 

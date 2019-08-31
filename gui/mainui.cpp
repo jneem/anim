@@ -20,8 +20,11 @@
 #include <QTabletEvent>
 #include <QTimer>
 #include <QPushButton>
+#include <QUndoStack>
 #include <QVBoxLayout>
 
+#include "addaudiosnippet.h"
+#include "addsnippet.h"
 #include "animation.h"
 #include "audio.h"
 #include "audiosnippet.h"
@@ -75,10 +78,11 @@ MainUI::MainUI(Animation *anim, QWidget *parent) : QMainWindow(parent)
     connect(anim, &Animation::snippetAdded, timeline, &Timeline::addSnippet);
     connect(anim, &Animation::snippetRemoved, timeline, &Timeline::removeSnippet);
     connect(anim, &Animation::snippetChanged, timeline, &Timeline::updateSnippet);
-    //connect(anim, &Animation::snippetAdded, this, &MainUI::addSnippet);
+    connect(anim, &Animation::snippetAdded, this, &MainUI::addSnippet);
     connect(anim, &Animation::snippetRemoved, this, &MainUI::removeSnippet);
 
     connect(audio, &Audio::snippetAdded, timeline, &Timeline::addAudioSnippet);
+    connect(audio, &Audio::snippetRemoved, timeline, &Timeline::removeAudioSnippet);
 
     connect(timer, SIGNAL(timeout()), this, SLOT(tick()));
     connect(this, &MainUI::timeChanged, view, &GraphicsView::update);
@@ -141,10 +145,11 @@ MainUI::initializeActions()
     fileMenu->addSeparator();
     fileMenu->addAction(quitAct);
 
-    auto undoAct = new QAction("&Undo", this);
+    undo_stack = new QUndoStack(this);
+    auto undoAct = undo_stack->createUndoAction(this, "&Undo");
     undoAct->setShortcuts(QKeySequence::Undo);
 
-    auto redoAct = new QAction("&Redo", this);
+    auto redoAct = undo_stack->createRedoAction(this, "&Redo");
     redoAct->setShortcuts(QKeySequence::Redo);
 
     auto editMenu = menuBar()->addMenu("&Edit");
@@ -304,7 +309,9 @@ void MainUI::stopRecording()
     idleButtonState();
     timer->stop();
 
-    view->stopRecording();
+    Snippet *snip = view->stopRecording();
+    undo_stack->push(new AddSnippet(view->animation(), snip));
+
     emit stoppedRecording();
 }
 
@@ -359,7 +366,7 @@ void MainUI::stopRecordingAudio()
     audio_input->stop();
 
     QAudioBuffer *buf = new QAudioBuffer(audio_recording_buffer->buffer(), audio_format);
-    audio->addSnippet(new AudioSnippet(buf, audio_start_time, this));
+    undo_stack->push(new AddAudioSnippet(audio, new AudioSnippet(buf, audio_start_time, this)));
 
     emit stoppedRecordingAudio();
 }
@@ -404,11 +411,19 @@ qint64 MainUI::endTime() const
 
 }
 
+void
+MainUI::addSnippet(Snippet *snip)
+{
+    view->addSnippet(snip, cur_time);
+}
+
 void MainUI::removeSnippet(Snippet *snip)
 {
     if (focused_snippet == snip) {
         focused_snippet = nullptr;
     }
+
+    view->removeSnippet(snip);
 }
 
 void MainUI::focusSnippet(Snippet *snip)

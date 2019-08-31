@@ -20,6 +20,15 @@ void Animation::addSnippet(Snippet *s)
     emit snippetAdded(s);
 }
 
+void
+Animation::removeSnippet(Snippet *s)
+{
+    Q_ASSERT(snippets.contains(s));
+    snippets.remove(s);
+
+    emit snippetRemoved(s);
+}
+
 QVector<RenderedPath>
 Animation::updatedPaths(qint64 prev_t, qint64 cur_t)
 {

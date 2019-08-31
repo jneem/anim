@@ -27,6 +27,13 @@ Audio::addSnippet(AudioSnippet *snip)
     emit snippetAdded(snip);
 }
 
+void
+Audio::removeSnippet(AudioSnippet *snip)
+{
+    snippets.removeAll(snip);
+    emit snippetRemoved(snip);
+}
+
 qint64
 Audio::endTime() const
 {

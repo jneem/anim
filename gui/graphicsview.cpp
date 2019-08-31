@@ -86,15 +86,17 @@ void GraphicsView::startRecording(qint64 time)
     rec_start_time = time;
 }
 
-void GraphicsView::stopRecording()
+Snippet*
+GraphicsView::stopRecording()
 {
     qDebug() << "GraphicsView::stopRecording";
     if (recSnippet) {
         Snippet *snippet = recSnippet->finishRecording();
         delete recSnippet;
         recSnippet = nullptr;
-        anim->addSnippet(snippet);
+        return snippet;
     }
+    return nullptr;
 }
 
 void GraphicsView::update(qint64 prev_t, qint64 cur_t)
@@ -107,5 +109,37 @@ void GraphicsView::update(qint64 prev_t, qint64 cur_t)
         } else {
             qDebug() << "failed to find item for path" << p.path;
         }
+    }
+}
+
+void
+GraphicsView::addSnippet(Snippet *snip, qint64 cur_time)
+{
+    auto all_paths = snip->allPaths();
+    for (auto p: all_paths) {
+        // There's a chance that we already have items for these paths, for example if we just recorded them.
+        if (!pathMap.contains(p)) {
+            auto item = new QGraphicsPathItem;
+            scene()->addItem(item);
+            pathMap.insert(p, item);
+            revPathMap.insert(item, p);
+        }
+    }
+
+    auto visible_paths = snip->changedPaths(snip->startTime(), cur_time);
+    for (auto p: visible_paths) {
+        auto item = pathMap.value(p.path);
+        item->setPath(p.rendered);
+    }
+}
+
+void
+GraphicsView::removeSnippet(Snippet *snip)
+{
+    auto paths = snip->allPaths();
+    for (auto p: paths) {
+        QGraphicsPathItem *item = pathMap.take(p);
+        scene()->removeItem(item);
+        revPathMap.remove(item);
     }
 }

@@ -23,6 +23,7 @@ signals:
 
 public slots:
     void addSnippet(AudioSnippet *snip);
+    void removeSnippet(AudioSnippet *snip);
 
 private:
     QVector<AudioSnippet*> snippets;

@@ -15,6 +15,7 @@ class QPushButton;
 class QTimer;
 class QAudioOutput;
 class QAudioInput;
+class QUndoStack;
 
 
 enum UIState {
@@ -65,7 +66,7 @@ public slots:
     void tick();
     void setTime(qint64 t);
 
-    //void addSnippet(Snippet*, qint64);
+    void addSnippet(Snippet*);
     void removeSnippet(Snippet*);
     void focusSnippet(Snippet*);
 
@@ -110,6 +111,8 @@ private:
     QAudioFormat audio_format;
 
     Snippet *focused_snippet = nullptr;
+
+    QUndoStack *undo_stack = nullptr;
 };
 
 

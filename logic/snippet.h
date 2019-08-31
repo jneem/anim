@@ -16,6 +16,7 @@ public:
     explicit Snippet(QVector<ChangingPath*> &paths, qint64 start_time, qint64 finish_time, QObject *parent = nullptr);
 
     QVector<RenderedPath> changedPaths(qint64 start, qint64 end) const;
+    const QVector<ChangingPath*> &allPaths() const { return paths; }
     qint64 startTime() const { return lerp_values.first(); }
     qint64 endTime() const { return lerp_values.last(); }
 

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT += multimedia
+QT += multimedia widgets
 TARGET = logic
 TEMPLATE = lib
 CONFIG += staticlib
@@ -21,6 +21,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+        addaudiosnippet.cpp \
+        addsnippet.cpp \
         animation.cpp \
         audio.cpp \
         audiosnippet.cpp \
@@ -29,6 +31,8 @@ SOURCES += \
         snippet.cpp
 
 HEADERS += \
+        addaudiosnippet.h \
+        addsnippet.h \
         animation.h \
         audio.h \
         audiosnippet.h \

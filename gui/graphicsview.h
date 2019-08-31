@@ -35,8 +35,10 @@ signals:
 
 public slots:
     void startRecording(qint64 time);
-    void stopRecording();
+    Snippet *stopRecording();
     void update(qint64 prev_time, qint64 cur_time);
+    void addSnippet(Snippet *snip, qint64 cur_time);
+    void removeSnippet(Snippet *snip);
 
 private:
     qint64 rec_start_time = 0;

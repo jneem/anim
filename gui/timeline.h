@@ -42,6 +42,7 @@ public slots:
     void updateSnippet(Snippet*);
 
     void addAudioSnippet(AudioSnippet*);
+    void removeAudioSnippet(AudioSnippet*);
 
     void startPlaying();
     void stopPlaying();
